@@ -1,6 +1,8 @@
 # Ignorar bases de datos
-DB/
-app/DB/
+# Ignorar contenido de DB, pero no la carpeta
+DB/*
+!DB/.gitkeep
+
 
 # Ignorar todos los __pycache__ del proyecto
 __pycache__/
