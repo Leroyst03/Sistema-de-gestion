@@ -1,4 +1,4 @@
-# Ignorar bases de datos
+
 # Ignorar contenido de DB, pero no la carpeta
 DB/*
 !DB/.gitkeep
