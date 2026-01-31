@@ -1,0 +1,11 @@
+# Ignorar bases de datos
+DB/
+app/DB/
+
+# Ignorar todos los __pycache__ del proyecto
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
+
+# Ignorar archivos compilados de Python
+*.pyc
