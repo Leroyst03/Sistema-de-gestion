@@ -93,7 +93,7 @@ class MainController(QObject):
             self.view.dibujar_pallet(pallet)
     
     def on_imagen_cargada(self, image_path: str):
-        """Manejador para cargar nueva imagen"""
+        """Manejador para cargar nueva imagen - AHORA TAMBIÉN CARGA ÓRDENES"""
         # Limpiar la escena primero
         self.view.limpiar_escena()
         
@@ -105,11 +105,14 @@ class MainController(QObject):
             if hasattr(self.view, 'io_controller'):
                 self.view.io_controller.start_monitoring()
             
-            # Mostrar el panel de órdenes (pero sigue vacío hasta que se añadan órdenes)
+            # Mostrar el panel de órdenes
             self.view.mostrar_panel_ordenes()
             
             # Cargar pallets después de cargar la imagen
             self.cargar_pallets()
+            
+            # AHORA: Cargar las órdenes solo cuando se carga un mapa
+            self.ordenes_controller.load_orders()
             
             QMessageBox.information(self.view, "Éxito", "Mapa cargado correctamente")
     
@@ -124,6 +127,15 @@ class MainController(QObject):
     
     def on_add_to_orders_clicked(self):
         """Manejador para añadir el pallet actual a las órdenes"""
+        # Verificar si hay un mapa cargado
+        if not self.current_image_path:
+            QMessageBox.warning(
+                self.view, 
+                "Mapa no cargado",
+                "Por favor, cargue un mapa primero antes de añadir órdenes."
+            )
+            return
+            
         if self.current_pallet_id:
             # Llamar al método del controlador de órdenes para añadir la orden
             self.ordenes_controller.add_order()

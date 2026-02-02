@@ -14,6 +14,9 @@ class OrdenesController(QObject):
         self.current_pallet_id = None
         self.current_pallet_position = None
         
+        # Estado para saber si ya se cargó información
+        self.ordenes_cargadas = False
+        
         # Conectar señales
         self.view.add_order_requested.connect(self.add_order)
         self.view.delete_order_requested.connect(self.delete_order)
@@ -21,8 +24,8 @@ class OrdenesController(QObject):
         self.view.move_down_requested.connect(self.move_order_down)
         self.view.selection_changed.connect(self.on_order_selected)
         
-        # Cargar órdenes existentes
-        self.load_orders()
+        # NO cargar órdenes al iniciar (se cargarán cuando se abra un mapa)
+        # self.load_orders()  # Esta línea se elimina o comenta
     
     def set_current_pallet(self, pallet_id: int):
         """Establecer el pallet actual seleccionado"""
@@ -34,6 +37,16 @@ class OrdenesController(QObject):
     
     def add_order(self):
         """Añadir una nueva orden basada en el pallet seleccionado"""
+        # Verificar si se ha cargado un mapa primero
+        if not self.ordenes_cargadas:
+            from PyQt5.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                self.view, 
+                "Mapa no cargado",
+                "Por favor, cargue un mapa primero antes de añadir órdenes."
+            )
+            return
+        
         if not self.current_pallet_id or not self.current_pallet_position:
             from PyQt5.QtWidgets import QMessageBox
             QMessageBox.warning(
@@ -44,6 +57,22 @@ class OrdenesController(QObject):
             return
         
         try:
+            # Verificar si el pallet ya está en una orden
+            orders = self.model.get_all_orders()
+            existing_order = next((order for order in orders 
+                                 if order.get("Pallet_ID") == self.current_pallet_id), None)
+            
+            if existing_order:
+                from PyQt5.QtWidgets import QMessageBox
+                reply = QMessageBox.question(
+                    self.view,
+                    "Pallet ya en órdenes",
+                    f"Este pallet ya está en la orden con destino {existing_order['Destino']}. ¿Desea añadirlo de nuevo?",
+                    QMessageBox.Yes | QMessageBox.No
+                )
+                if reply == QMessageBox.No:
+                    return
+            
             # Insertar nueva orden
             order_id = self.model.insert_order(
                 origen=self.current_pallet_position,
@@ -51,15 +80,7 @@ class OrdenesController(QObject):
             )
             
             # Actualizar vista
-            orders = self.model.get_all_orders()
-            self.view.clear_orders()
-            for order in orders:
-                self.view.add_order_item(
-                    order_id=order["ID"],
-                    origen=order["Origen"],
-                    destino=order["Destino"],
-                    pallet_id=order["Pallet_ID"]
-                )
+            self.refresh_orders_list()
             
         except Exception as e:
             from PyQt5.QtWidgets import QMessageBox
@@ -141,13 +162,14 @@ class OrdenesController(QObject):
     
     def load_orders(self):
         """Cargar todas las órdenes en la vista"""
+        self.ordenes_cargadas = True
         orders = self.model.get_all_orders()
         for order in orders:
+            # Solo pasamos origen y destino, no pallet_id
             self.view.add_order_item(
                 order_id=order["ID"],
                 origen=order["Origen"],
-                destino=order["Destino"],
-                pallet_id=order["Pallet_ID"]
+                destino=order["Destino"]
             )
     
     def refresh_orders_list(self):
@@ -155,12 +177,17 @@ class OrdenesController(QObject):
         orders = self.model.get_all_orders()
         self.view.clear_orders()
         for order in orders:
+            # Solo pasamos origen y destino, no pallet_id
             self.view.add_order_item(
                 order_id=order["ID"],
                 origen=order["Origen"],
-                destino=order["Destino"],
-                pallet_id=order["Pallet_ID"]
+                destino=order["Destino"]
             )
+    
+    def clear_orders(self):
+        """Limpiar todas las órdenes de la vista (usado al cerrar mapa)"""
+        self.ordenes_cargadas = False
+        self.view.clear_orders()
     
     def get_widget(self):
         """Obtener el widget para insertar en la interfaz principal"""

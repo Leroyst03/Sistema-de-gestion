@@ -22,10 +22,10 @@ class OrdenesWidget(QWidget):
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(8)
         
-        # Tabla de órdenes (SIN columna visible de ID)
+        # Tabla de órdenes (SIN columna de Pallet)
         self.order_table = QTableWidget()
-        self.order_table.setColumnCount(3)
-        self.order_table.setHorizontalHeaderLabels(["Origen", "Destino", "Pallet"])
+        self.order_table.setColumnCount(2)  # Solo 2 columnas: Origen y Destino
+        self.order_table.setHorizontalHeaderLabels(["Origen", "Destino"])
         self.order_table.setAlternatingRowColors(True)
         self.order_table.setStyleSheet("""
             QTableWidget {
@@ -165,7 +165,7 @@ class OrdenesWidget(QWidget):
     def clear_orders(self):
         self.order_table.setRowCount(0)
     
-    def add_order_item(self, order_id: int, origen: int, destino: int, pallet_id: int = None):
+    def add_order_item(self, order_id: int, origen: int, destino: int):
         """Añadir una orden a la tabla (ID solo en UserRole)."""
         row = self.order_table.rowCount()
         self.order_table.insertRow(row)
@@ -180,12 +180,6 @@ class OrdenesWidget(QWidget):
         destino_item = QTableWidgetItem(str(destino))
         destino_item.setFlags(destino_item.flags() & ~Qt.ItemIsEditable)
         self.order_table.setItem(row, 1, destino_item)
-        
-        # Pallet
-        pallet_text = str(pallet_id) if pallet_id else "N/A"
-        pallet_item = QTableWidgetItem(pallet_text)
-        pallet_item.setFlags(pallet_item.flags() & ~Qt.ItemIsEditable)
-        self.order_table.setItem(row, 2, pallet_item)
     
     def remove_order_item(self, order_id: int):
         """Remover una orden por ID (buscando en UserRole de la columna 0)."""
@@ -195,7 +189,7 @@ class OrdenesWidget(QWidget):
                 self.order_table.removeRow(row)
                 break
     
-    def update_order_item(self, order_id: int, origen: int, destino: int, pallet_id: int = None):
+    def update_order_item(self, order_id: int, origen: int, destino: int):
         """Actualizar una orden existente."""
         for row in range(self.order_table.rowCount()):
             origen_item = self.order_table.item(row, 0)
@@ -207,12 +201,6 @@ class OrdenesWidget(QWidget):
                 destino_item = QTableWidgetItem(str(destino))
                 destino_item.setFlags(destino_item.flags() & ~Qt.ItemIsEditable)
                 self.order_table.setItem(row, 1, destino_item)
-                
-                # Pallet
-                pallet_text = str(pallet_id) if pallet_id else "N/A"
-                pallet_item = QTableWidgetItem(pallet_text)
-                pallet_item.setFlags(pallet_item.flags() & ~Qt.ItemIsEditable)
-                self.order_table.setItem(row, 2, pallet_item)
                 break
     
     def refresh_table(self):

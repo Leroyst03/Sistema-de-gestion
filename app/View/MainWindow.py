@@ -458,6 +458,7 @@ class MainWindow(QMainWindow):
             # Emitir señal de actualización
             self.propiedades_actualizadas.emit({propiedad: valor})
     
+   
     def limpiar_escena(self):
         """Limpiar todos los items de la escena"""
         self.scene.clear()
@@ -474,7 +475,8 @@ class MainWindow(QMainWindow):
         if self.add_to_orders_button:
             self.add_to_orders_button.setEnabled(False)
         
- 
+        # NOTA: Ahora también deberíamos limpiar las órdenes,
+        # pero esto se manejará desde MainController
         
         # Restaurar tamaño mínimo del panel de órdenes
         self.ui.groupOrdenes.setMinimumHeight(150)
