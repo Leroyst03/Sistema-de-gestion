@@ -234,3 +234,103 @@ QScrollBar::handle:horizontal:hover {
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
     width: 0px;
 }
+/* ===== LISTA DE ÓRDENES (OrderWidget) ===== */
+OrderWidget {
+    background-color: transparent;
+}
+
+OrderWidget QListWidget {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    border: 1px solid #444;
+    border-radius: 3px;
+    font-size: 10px;
+    alternate-background-color: #2b2b2b;
+}
+
+OrderWidget QListWidget::item {
+    padding: 4px;
+    margin: 1px;
+    color: #e0e0e0;
+}
+
+OrderWidget QListWidget::item:selected {
+    background-color: #1a73e8;
+    color: white;
+}
+
+OrderWidget QListWidget::item:alternate {
+    background-color: #2b2b2b;
+    color: #e0e0e0;
+}
+
+OrderWidget QPushButton {
+    background-color: #2b2b2b;
+    color: #e0e0e0;
+    border: 1px solid #444;
+    border-radius: 3px;
+    padding: 4px 8px;
+    font-size: 9px;
+    min-height: 20px;
+}
+
+OrderWidget QPushButton:hover {
+    background-color: #3a3a3a;
+    border-color: #555;
+}
+
+OrderWidget QPushButton:pressed {
+    background-color: #1a73e8;
+    border-color: #1a73e8;
+}
+
+OrderWidget QPushButton:disabled {
+    background-color: #1e1e1e;
+    color: #666;
+    border-color: #333;
+}
+/* ===== PANELES LATERALES - MEJOR VISUALIZACIÓN ===== */
+QSplitter::handle {
+    background-color: #444;
+    width: 2px;
+    border: none;
+}
+
+QSplitter::handle:hover {
+    background-color: #1a73e8;
+}
+
+/* Grupo de órdenes cuando está vacío */
+QGroupBox#groupOrdenes:empty {
+    border: 2px dashed #444;
+}
+
+/* Ajustes para scroll areas dentro de paneles laterales */
+QScrollArea {
+    border: none;
+    background-color: transparent;
+}
+
+QScrollArea > QWidget > QWidget {
+    background-color: transparent;
+}
+
+/* Asegurar que los widgets dentro de layouts laterales se vean bien */
+QGroupBox > QVBoxLayout {
+    spacing: 8px;
+    margin: 8px;
+}
+
+/* Tablas dentro de paneles laterales */
+QTableWidget#propiedadesTable,
+QTableWidget {
+    min-height: 150px;
+    max-height: 400px;
+    selection-background-color: #1a73e8;
+}
+
+/* Botones dentro de paneles laterales */
+QPushButton[flat="false"] {
+    min-height: 30px;
+    margin: 2px;
+}

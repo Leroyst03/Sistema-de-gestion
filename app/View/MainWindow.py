@@ -1,7 +1,8 @@
-from PyQt5.QtWidgets import QMainWindow, QGraphicsScene, QGraphicsView, QGraphicsRectItem, QGraphicsPixmapItem, QFileDialog, QTableWidgetItem, QMessageBox, QHeaderView
-from PyQt5.QtCore import Qt, pyqtSignal, QPointF
+from PyQt5.QtWidgets import QScrollArea, QFrame, QMainWindow, QGraphicsScene, QGraphicsView, QGraphicsRectItem, QGraphicsPixmapItem, QFileDialog, QTableWidgetItem, QMessageBox, QHeaderView, QPushButton, QSizePolicy, QSplitter, QVBoxLayout, QHBoxLayout, QFrame
+from PyQt5.QtCore import Qt, pyqtSignal, QPointF, QSize
 from PyQt5.QtGui import QPixmap, QBrush, QColor, QPen, QPainter, QWheelEvent, QCursor
 import math
+
 
 from View.ui_mainwindow import Ui_MainWindow
 
@@ -53,6 +54,7 @@ class MainWindow(QMainWindow):
     pallet_seleccionado = pyqtSignal(int)
     propiedades_actualizadas = pyqtSignal(dict)
     imagen_cargada = pyqtSignal(str)
+    add_to_orders_clicked = pyqtSignal()  # Nueva señal para añadir a órdenes
     
     def __init__(self):
         super().__init__()
@@ -82,17 +84,82 @@ class MainWindow(QMainWindow):
         # Pallets en la escena (ID -> [rect_horizontal, rect_vertical])
         self.pallet_items = {}
         
-        # Ajustar el tamaño del panel lateral
-        self.ui.splitter.setSizes([800, 400])  # Más espacio para el área de trabajo
+        # Configurar tamaños de splitters para mejor distribución
+        self.setup_splitter_layout()
         
         # Configurar el display de I/O desde el inicio (pero con valores en 0)
         self.setup_io_display()
         
         # Asegurar que el grupo de I/O esté visible desde el inicio
         self.ui.groupIO.setVisible(True)
+        
+        # Configurar tamaños mínimos y máximos para paneles
+        self.setup_panel_sizes()
+
+        
+        # Variable para almacenar el pallet seleccionado actualmente
+        self.current_pallet_id = None
+        
+        # Inicializar botón de añadir a órdenes
+        self.add_to_orders_button = None
+        
+        # Conectar el cambio de tamaño de ventana
+        self.resizeEvent = self.on_resize
     
+    def setup_splitter_layout(self):
+        """Configurar el splitter principal para mejor distribución del espacio"""
+        # Configurar proporciones iniciales (70% área trabajo, 30% panel lateral)
+        self.ui.splitter.setSizes([700, 300])
+        
+        # Configurar tamaños mínimos
+        self.ui.splitter.setMinimumSize(800, 600)
+        
+        # Hacer que el área de trabajo sea el que se expanda más
+        self.ui.splitter.setStretchFactor(0, 3)  # Área trabajo tiene factor de estiramiento 3
+        self.ui.splitter.setStretchFactor(1, 1)  # Panel lateral tiene factor de estiramiento 1
+        
+        # Configurar que se puedan colapsar paneles
+        self.ui.splitter.setChildrenCollapsible(False)
+    
+    def setup_panel_sizes(self):
+        """Configurar tamaños mínimos y máximos para los paneles laterales"""
+        # Grupo de órdenes - oculto inicialmente, tamaño adaptable
+        self.ui.groupOrdenes.setMinimumHeight(150)
+        self.ui.groupOrdenes.setMaximumHeight(400)
+        
+        # Grupo de I/O - tamaño fijo
+        self.ui.groupIO.setMinimumHeight(180)
+        self.ui.groupIO.setMaximumHeight(220)
+        
+        # Grupo de propiedades - tamaño adaptable
+        self.ui.groupPropiedadesPallet.setMinimumHeight(200)
+        self.ui.groupPropiedadesPallet.setMaximumHeight(350)
+        
+        # Establecer políticas de tamaño para los widgets dentro del panel lateral
+        self.ui.groupOrdenes.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        self.ui.groupIO.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.ui.groupPropiedadesPallet.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        
+        # Configurar scroll areas para contenido largo
+        self.ui.ordenesLayout.setAlignment(Qt.AlignTop)
+        self.ui.ioLayout.setAlignment(Qt.AlignTop)
+        self.ui.propiedadesLayout.setAlignment(Qt.AlignTop)
+    
+    def on_resize(self, event):
+        """Manejador para cuando cambia el tamaño de la ventana"""
+        # Mantener proporciones razonables al redimensionar
+        current_width = self.width()
+        if current_width > 0:
+            # Mantener relación aproximadamente 70/30
+            work_width = int(current_width * 0.7)
+            panel_width = int(current_width * 0.3)
+            self.ui.splitter.setSizes([work_width, panel_width])
+        
+        super().resizeEvent(event)
+    
+
     def setup_io_display(self):
-        """Configurar la visualización de entradas/salidas"""
+        """Configurar la visualización de entradas/salidas con scroll vertical"""
         # Limpiar el layout existente en groupIO
         while self.ui.ioLayout.count():
             item = self.ui.ioLayout.takeAt(0)
@@ -103,11 +170,33 @@ class MainWindow(QMainWindow):
         from Controller.IOController import IOController
         self.io_controller = IOController()
         io_widget = self.io_controller.get_widget()
-        self.ui.ioLayout.addWidget(io_widget)
         
-        # Inicialmente mostrar todos los puntos en 0 (rojos)
-        # No iniciar el monitoreo automático hasta que se cargue una imagen
-        # El widget ya se inicializa con todos los puntos en rojo (estado False)
+        # Crear un scroll area que envuelva al widget de I/O
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setFrameShape(QFrame.NoFrame)
+        
+        scroll.setWidget(io_widget)
+        
+        # Añadir el scroll al layout del panel IO
+        self.ui.ioLayout.addWidget(scroll)
+
+    
+    def mostrar_panel_ordenes(self):
+        """Mostrar el panel de órdenes después de cargar un mapa"""
+        self.ui.groupOrdenes.setVisible(True)
+        
+        # Ajustar dinámicamente los tamaños cuando se muestra el panel de órdenes
+        if self.has_image:
+            # Redistribuir espacio entre los paneles laterales
+            total_panel_height = self.ui.sidePanel.height()
+            if total_panel_height > 600:
+                # Si hay mucho espacio, distribuir proporcionalmente
+                self.ui.groupOrdenes.setMinimumHeight(int(total_panel_height * 0.4))
+                self.ui.groupIO.setMinimumHeight(int(total_panel_height * 0.2))
+                self.ui.groupPropiedadesPallet.setMinimumHeight(int(total_panel_height * 0.4))
     
     def setup_propiedades_table(self):
         """Configurar la tabla de propiedades con las columnas necesarias"""
@@ -130,6 +219,9 @@ class MainWindow(QMainWindow):
         self.ui.propiedadesTable.horizontalHeader().setStretchLastSection(True)
         self.ui.propiedadesTable.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.ui.propiedadesTable.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        
+        # Configurar altura de filas
+        self.ui.propiedadesTable.verticalHeader().setDefaultSectionSize(30)
         
         for row, (propiedad, tipo) in enumerate(propiedades):
             item = QTableWidgetItem(propiedad)
@@ -256,6 +348,7 @@ class MainWindow(QMainWindow):
                 item.setPen(QPen(Qt.black, 1))
         
         self.pallet_seleccionado.emit(pallet_id)
+        self.current_pallet_id = pallet_id
         event.accept()
     
     def mostrar_propiedades_pallet(self, pallet_data: dict):
@@ -285,13 +378,49 @@ class MainWindow(QMainWindow):
                 valor = propiedades_mostrar[propiedad]
                 item = QTableWidgetItem(valor)
                 
-                # Hacer que todas las propiedades sean editables excepto ID
-                if propiedad != "ID":
+                # Hacer que todas las propiedades sean editables excepto ID y Posicion
+                if propiedad not in ["ID", "Posicion"]:
                     item.setFlags(item.flags() | Qt.ItemIsEditable)
                 else:
                     item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                     
                 self.ui.propiedadesTable.setItem(row, 1, item)
+        
+        # Añadir botón para añadir a órdenes al final de la tabla
+        # Primero verificamos si ya existe el botón
+        if not self.add_to_orders_button:
+            self.add_to_orders_button = QPushButton("Añadir a la lista de órdenes")
+            self.add_to_orders_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #2b2b2b;
+                    color: #e0e0e0;
+                    border: 1px solid #444;
+                    border-radius: 4px;
+                    padding: 10px;
+                    font-weight: bold;
+                    font-size: 11px;
+                    margin-top: 15px;
+                    min-height: 35px;
+                }
+                QPushButton:hover {
+                    background-color: #3a3a3a;
+                    border-color: #555;
+                }
+                QPushButton:pressed {
+                    background-color: #1a73e8;
+                    border-color: #1a73e8;
+                }
+                QPushButton:disabled {
+                    background-color: #1e1e1e;
+                    color: #666;
+                    border-color: #333;
+                }
+            """)
+            self.add_to_orders_button.clicked.connect(self.add_to_orders_clicked.emit)
+            self.ui.propiedadesLayout.addWidget(self.add_to_orders_button)
+        
+        # Habilitar el botón si hay un pallet seleccionado
+        self.add_to_orders_button.setEnabled(True)
         
         # Reconectar señal
         self.ui.propiedadesTable.itemChanged.connect(self.on_propiedades_changed)
@@ -303,13 +432,13 @@ class MainWindow(QMainWindow):
             propiedad = self.ui.propiedadesTable.item(row, 0).text()
             valor = item.text()
             
-            # Verificar que no sea la propiedad ID (no editable)
-            if propiedad == "ID":
+            # Verificar que no sea la propiedad ID o Posicion (no editables)
+            if propiedad in ["ID", "Posicion"]:
                 return
             
             # Convertir al tipo correcto
             try:
-                if propiedad in ["Largo", "Ancho", "Posicion", "Alto", "Peso"]:
+                if propiedad in ["Largo", "Ancho", "Alto", "Peso"]:
                     valor = float(valor)
                 elif propiedad == "Prioridad":
                     valor = int(valor)
@@ -335,10 +464,20 @@ class MainWindow(QMainWindow):
         self.pallet_items.clear()
         self.background_item = None
         self.has_image = False
+        self.current_pallet_id = None
         
         # Limpiar tabla de propiedades
         for row in range(self.ui.propiedadesTable.rowCount()):
             self.ui.propiedadesTable.setItem(row, 1, QTableWidgetItem(""))
+        
+        # Deshabilitar botón de añadir a órdenes
+        if self.add_to_orders_button:
+            self.add_to_orders_button.setEnabled(False)
+        
+ 
+        
+        # Restaurar tamaño mínimo del panel de órdenes
+        self.ui.groupOrdenes.setMinimumHeight(150)
         
         # Detener el monitoreo de I/O cuando no hay imagen
         if hasattr(self, 'io_controller'):

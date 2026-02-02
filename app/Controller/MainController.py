@@ -1,9 +1,10 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMessageBox, QSizePolicy
 from PyQt5.QtCore import QObject
 
 from Model.DataProvider import DataProvider
 from View.MainWindow import MainWindow
+from Controller.OrdenesController import OrdenesController
 
 class MainController(QObject):
     def __init__(self):
@@ -16,6 +17,12 @@ class MainController(QObject):
         # Inicializar componentes MVC
         self.view = MainWindow()
         self.model = DataProvider()
+        
+        # Inicializar controlador de órdenes
+        self.ordenes_controller = OrdenesController(self.model)
+        
+        # Integrar widget de órdenes en la vista principal
+        self.setup_ordenes_widget()
         
         # Conectar señales
         self.conectar_señales()
@@ -40,6 +47,25 @@ class MainController(QObject):
         except FileNotFoundError:
             print("Archivo de estilos no encontrado, usando estilos por defecto")
     
+    def setup_ordenes_widget(self):
+        """Configurar el widget de órdenes en la ventana principal"""
+        # Limpiar layout de órdenes si ya tiene contenido
+        while self.view.ui.ordenesLayout.count():
+            item = self.view.ui.ordenesLayout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        
+        # Añadir widget de órdenes - se mostrará vacío inicialmente
+        ordenes_widget = self.ordenes_controller.get_widget()
+        
+        # Configurar el widget para que sea expansible
+        ordenes_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        
+        self.view.ui.ordenesLayout.addWidget(ordenes_widget)
+        
+        # Inicialmente, la tabla de órdenes debe estar vacía
+        # (ya está vacía por defecto en el constructor de OrdenesWidget)
+    
     def conectar_señales(self):
         """Conectar todas las señales entre vista y controlador"""
         # Menú
@@ -49,6 +75,9 @@ class MainController(QObject):
         self.view.pallet_seleccionado.connect(self.on_pallet_seleccionado)
         self.view.propiedades_actualizadas.connect(self.on_propiedades_actualizadas)
         self.view.imagen_cargada.connect(self.on_imagen_cargada)
+        
+        # Conectar el botón de añadir orden de la vista principal
+        self.view.add_to_orders_clicked.connect(self.on_add_to_orders_clicked)
     
     def cargar_pallets(self):
         """Cargar todos los pallets de la base de datos y dibujarlos"""
@@ -76,6 +105,9 @@ class MainController(QObject):
             if hasattr(self.view, 'io_controller'):
                 self.view.io_controller.start_monitoring()
             
+            # Mostrar el panel de órdenes (pero sigue vacío hasta que se añadan órdenes)
+            self.view.mostrar_panel_ordenes()
+            
             # Cargar pallets después de cargar la imagen
             self.cargar_pallets()
             
@@ -87,6 +119,20 @@ class MainController(QObject):
         pallet_data = self.model.get_pallet_by_id(pallet_id)
         if pallet_data:
             self.view.mostrar_propiedades_pallet(pallet_data)
+            # Actualizar el controlador de órdenes con el pallet seleccionado
+            self.ordenes_controller.set_current_pallet(pallet_id)
+    
+    def on_add_to_orders_clicked(self):
+        """Manejador para añadir el pallet actual a las órdenes"""
+        if self.current_pallet_id:
+            # Llamar al método del controlador de órdenes para añadir la orden
+            self.ordenes_controller.add_order()
+        else:
+            QMessageBox.warning(
+                self.view, 
+                "Sin pallet seleccionado",
+                "Por favor, seleccione un pallet primero."
+            )
     
     def on_propiedades_actualizadas(self, propiedades: dict):
         """Manejador cuando se actualizan propiedades de un pallet"""
