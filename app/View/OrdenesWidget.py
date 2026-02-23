@@ -22,7 +22,7 @@ class OrdenesWidget(QWidget):
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(8)
         
-        # Tabla de órdenes (SIN columna de Pallet)
+        # Tabla de órdenes 
         self.order_table = QTableWidget()
         self.order_table.setColumnCount(2)  # Solo 2 columnas: Origen y Destino
         self.order_table.setHorizontalHeaderLabels(["Origen", "Destino"])

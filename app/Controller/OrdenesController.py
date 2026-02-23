@@ -62,16 +62,16 @@ class OrdenesController(QObject):
             existing_order = next((order for order in orders 
                                  if order.get("Pallet_ID") == self.current_pallet_id), None)
             
-            if existing_order:
-                from PyQt5.QtWidgets import QMessageBox
-                reply = QMessageBox.question(
-                    self.view,
-                    "Pallet ya en órdenes",
-                    f"Este pallet ya está en la orden con destino {existing_order['Destino']}. ¿Desea añadirlo de nuevo?",
-                    QMessageBox.Yes | QMessageBox.No
-                )
-                if reply == QMessageBox.No:
-                    return
+            # if existing_order:
+            #     from PyQt5.QtWidgets import QMessageBox
+            #     reply = QMessageBox.question(
+            #         self.view,
+            #         "Pallet ya en órdenes",
+            #         f"Este pallet ya está en la orden con destino {existing_order['Destino']}. ¿Desea añadirlo de nuevo?",
+            #         QMessageBox.Yes | QMessageBox.No
+            #     )
+            #     if reply == QMessageBox.No:
+            #         return
             
             # Insertar nueva orden
             order_id = self.model.insert_order(
