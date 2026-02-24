@@ -20,7 +20,7 @@ class DataProvider:
                     Ancho REAL NOT NULL,
                     Posicion INTEGER NOT NULL,
                     Alto REAL NOT NULL,
-                    Calidad TEXT NOT NULL,
+                    Calidad INTEGER NOT NULL,
                     Peso REAL NOT NULL,
                     Prioridad INTEGER NOT NULL,
                     X REAL NOT NULL,

@@ -1,24 +1,31 @@
 import random
 from Model.DataProvider import DataProvider
 
-# Tamaño del mapa
-MAP_WIDTH = 979
-MAP_HEIGHT = 599
+# Tamaño del mapa en píxeles
+MAP_WIDTH_PX = 979
+MAP_HEIGHT_PX = 599
+
+# Escala: metros por píxel
+ESCALA = 0.05
+
+# Tamaño del mapa en metros
+MAP_WIDTH_M = MAP_WIDTH_PX * ESCALA    # 48.95 m
+MAP_HEIGHT_M = MAP_HEIGHT_PX * ESCALA  # 29.95 m
 
 def generar_pallet():
-    """Genera un pallet con datos válidos para la DB."""
+    """Genera un pallet con datos válidos para la DB. Las coordenadas X, Y se generan en metros."""
     return {
         "Largo": round(random.uniform(0.8, 1.4), 2),
         "Ancho": round(random.uniform(0.8, 1.2), 2),
         "Posicion": random.randint(1, 300),
         "Alto": round(random.uniform(0.5, 2.0), 2),
-        "Calidad": random.choice(["A", "B", "C"]),
+        "Calidad": random.choice([1, 2, 5]),
         "Peso": round(random.uniform(50, 1200), 1),
         "Prioridad": random.randint(1, 5),
 
-        # Coordenadas dentro del mapa
-        "X": round(random.uniform(0, MAP_WIDTH), 2),
-        "Y": round(random.uniform(0, MAP_HEIGHT), 2),
+        # Coordenadas en metros (dentro del mapa)
+        "X": round(random.uniform(0, MAP_WIDTH_M), 2),
+        "Y": round(random.uniform(0, MAP_HEIGHT_M), 2),
 
         # SQLite usa 0/1 para booleanos
         "Visibilidad": random.choice([0, 1])
@@ -31,7 +38,7 @@ def poblar_db(cantidad=50):
     for i in range(cantidad):
         pallet = generar_pallet()
         new_id = db.insert_pallet(**pallet)
-        print(f"[{i+1}/{cantidad}] Pallet insertado con ID {new_id}")
+        print(f"[{i+1}/{cantidad}] Pallet insertado con ID {new_id} (X={pallet['X']} m, Y={pallet['Y']} m)")
 
     print("\n✔ Inserción completada.")
 

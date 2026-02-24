@@ -3,7 +3,6 @@ from PyQt5.QtCore import Qt, pyqtSignal, QPointF, QSize
 from PyQt5.QtGui import QPixmap, QBrush, QColor, QPen, QPainter, QWheelEvent, QCursor
 import math
 
-
 from View.ui_mainwindow import Ui_MainWindow
 
 class GraphicsView(QGraphicsView):
@@ -60,6 +59,10 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+        
+        # --- CAMBIO: Escala de metros a píxeles (metros por píxel) ---
+        self.escala = 0.05  # 1 píxel = 0.05 metros  =>  1 metro = 20 píxeles
+        # -------------------------------------------------------------
         
         # Configurar la vista gráfica personalizada
         self.graphics_view = GraphicsView(self.ui.scrollAreaWidgetContentsWork)
@@ -255,8 +258,12 @@ class MainWindow(QMainWindow):
             return
             
         pallet_id = pallet_data["ID"]
-        x = pallet_data["X"]
-        y = pallet_data["Y"]
+        # --- CAMBIO: Convertir coordenadas de metros a píxeles usando la escala ---
+        x_metro = pallet_data["X"]
+        y_metro = pallet_data["Y"]
+        x = x_metro / self.escala   # ahora x e y están en píxeles para la escena
+        y = y_metro / self.escala
+        # ------------------------------------------------------------------------
         visibilidad = bool(pallet_data["Visibilidad"])
         
         # Tamaños fijos para todos los pallets
