@@ -1,4 +1,5 @@
 import random
+import uuid
 from Model.DataProvider import DataProvider
 
 # Tamaño del mapa en píxeles
@@ -13,8 +14,9 @@ MAP_WIDTH_M = MAP_WIDTH_PX * ESCALA    # 48.95 m
 MAP_HEIGHT_M = MAP_HEIGHT_PX * ESCALA  # 29.95 m
 
 def generar_pallet():
-    """Genera un pallet con datos válidos para la DB. Las coordenadas X, Y se generan en metros."""
+    """Genera un pallet con datos válidos para la DB. Incluye un ID hexadecimal único."""
     return {
+        "ID": uuid.uuid4().hex[:8],                     # ID hexadecimal de 8 caracteres
         "Largo": round(random.uniform(0.8, 1.4), 2),
         "Ancho": round(random.uniform(0.8, 1.2), 2),
         "Posicion": random.randint(1, 300),
@@ -22,13 +24,9 @@ def generar_pallet():
         "Calidad": random.choice([1, 2, 5]),
         "Peso": round(random.uniform(50, 1200), 1),
         "Prioridad": random.randint(1, 5),
-
-        # Coordenadas en metros (dentro del mapa)
         "X": round(random.uniform(0, MAP_WIDTH_M), 2),
         "Y": round(random.uniform(0, MAP_HEIGHT_M), 2),
-
-        # SQLite usa 0/1 para booleanos
-        "Visibilidad": random.choice([0, 1])
+        "Ocupado": random.choice([0, 1])                 # ← Cambiado a Ocupado
     }
 
 def poblar_db(cantidad=50):
@@ -43,4 +41,4 @@ def poblar_db(cantidad=50):
     print("\n✔ Inserción completada.")
 
 if __name__ == "__main__":
-    poblar_db(5)
+    poblar_db(5)   # Cambia la cantidad de pallets a generar según tus necesidades

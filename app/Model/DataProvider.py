@@ -1,4 +1,5 @@
 import sqlite3
+import uuid
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
@@ -15,7 +16,7 @@ class DataProvider:
             cursor = conn.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS pallets (
-                    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ID TEXT PRIMARY KEY,
                     Largo REAL NOT NULL,
                     Ancho REAL NOT NULL,
                     Posicion INTEGER NOT NULL,
@@ -25,10 +26,15 @@ class DataProvider:
                     Prioridad INTEGER NOT NULL,
                     X REAL NOT NULL,
                     Y REAL NOT NULL,
-                    Visibilidad BOOLEAN NOT NULL
+                    Ocupado BOOLEAN NOT NULL
                 )
             """)
             conn.commit()
+    
+    @staticmethod
+    def generate_hex_id(length: int = 8) -> str:
+        """Genera un ID hexadecimal único de longitud especificada (por defecto 8 caracteres)."""
+        return uuid.uuid4().hex[:length]
     
     def get_all_pallets(self) -> List[Dict[str, Any]]:
         """Obtener todos los pallets de la base de datos"""
@@ -39,8 +45,8 @@ class DataProvider:
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
     
-    def get_pallet_by_id(self, pallet_id: int) -> Optional[Dict[str, Any]]:
-        """Obtener un pallet por su ID"""
+    def get_pallet_by_id(self, pallet_id: str) -> Optional[Dict[str, Any]]:
+        """Obtener un pallet por su ID (string)"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
@@ -48,7 +54,7 @@ class DataProvider:
             row = cursor.fetchone()
             return dict(row) if row else None
     
-    def update_pallet(self, pallet_id: int, **kwargs):
+    def update_pallet(self, pallet_id: str, **kwargs):
         """Actualizar las propiedades de un pallet"""
         if not kwargs:
             return
@@ -62,8 +68,12 @@ class DataProvider:
             cursor.execute(f"UPDATE pallets SET {set_clause} WHERE ID = ?", values)
             conn.commit()
     
-    def insert_pallet(self, **kwargs) -> int:
-        """Insertar un nuevo pallet y retornar su ID"""
+    def insert_pallet(self, **kwargs) -> str:
+        """Insertar un nuevo pallet y retornar su ID (generado automáticamente si no se provee)"""
+        # Si no se proporciona ID, generar uno
+        if 'ID' not in kwargs:
+            kwargs['ID'] = self.generate_hex_id()
+        
         keys = ", ".join(kwargs.keys())
         placeholders = ", ".join(["?" for _ in kwargs])
         values = list(kwargs.values())
@@ -72,9 +82,9 @@ class DataProvider:
             cursor = conn.cursor()
             cursor.execute(f"INSERT INTO pallets ({keys}) VALUES ({placeholders})", values)
             conn.commit()
-            return cursor.lastrowid
+            return kwargs['ID']
     
-    def delete_pallet(self, pallet_id: int):
+    def delete_pallet(self, pallet_id: str):
         """Eliminar un pallet por su ID"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
