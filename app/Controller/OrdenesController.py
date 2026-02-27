@@ -1,164 +1,99 @@
-from PyQt5.QtCore import QObject
+from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtWidgets import QMessageBox
 from Model.OrdenesModel import OrdenesModel
-from Model.DataProvider import DataProvider
 from View.OrdenesWidget import OrdenesWidget
 
 class OrdenesController(QObject):
-    def __init__(self, data_provider: DataProvider = None):
+    def __init__(self, model):
         super().__init__()
-        self.model = OrdenesModel()
-        self.data_provider = data_provider or DataProvider()
+        self.model = model  # DataProvider
+        self.ordenes_model = OrdenesModel()
         self.view = OrdenesWidget()
+        self.current_pallet = None
         
-        self.current_pallet_id = None
-        self.current_pallet_position = None
-        
-        self.ordenes_cargadas = False
-        
+        # Conectar señales de la vista
         self.view.add_order_requested.connect(self.add_order)
         self.view.delete_order_requested.connect(self.delete_order)
-        self.view.move_up_requested.connect(self.move_order_up)
-        self.view.move_down_requested.connect(self.move_order_down)
-        self.view.selection_changed.connect(self.on_order_selected)
-    
-    def set_current_pallet(self, pallet_id: str):
-        self.current_pallet_id = pallet_id
-        if pallet_id:
-            pallet_data = self.data_provider.get_pallet_by_id(pallet_id)
-            if pallet_data:
-                self.current_pallet_position = pallet_data.get("Posicion")
-    
-    def add_order(self):
-        if not self.ordenes_cargadas:
-            from PyQt5.QtWidgets import QMessageBox
-            QMessageBox.warning(self.view, "Mapa no cargado", "Por favor, cargue un mapa primero antes de añadir órdenes.")
-            return
+        self.view.move_up_requested.connect(self.move_up)
+        self.view.move_down_requested.connect(self.move_down)
         
-        if not self.current_pallet_id or not self.current_pallet_position:
-            from PyQt5.QtWidgets import QMessageBox
-            QMessageBox.warning(self.view, "Sin pallet seleccionado", "Por favor, seleccione un pallet primero para obtener su posición.")
-            return
-        
-        try:
-            # Verificar si el pallet ya está en una orden
-            orders = self.model.get_all_orders()
-            existing_order = next((order for order in orders 
-                                 if order.get("Pallet_ID") == self.current_pallet_id), None)
-            if existing_order:
-                from PyQt5.QtWidgets import QMessageBox
-                QMessageBox.warning(
-                    self.view,
-                    "Pallet ya en órdenes",
-                    "Este pallet ya se encuentra en la lista de órdenes."
-                )
-                return
-            
-            # Verificar que el pallet esté ocupado (ocupado = 1)
-            pallet_data = self.data_provider.get_pallet_by_id(self.current_pallet_id)
-            if not pallet_data or pallet_data.get("Ocupado") != 1:
-                from PyQt5.QtWidgets import QMessageBox
-                QMessageBox.warning(
-                    self.view,
-                    "Pallet no ocupado",
-                    "Solo se pueden añadir a la lista los pallets que estén ocupados.\n"
-                    "Marque el pallet como ocupado en la tabla de propiedades primero."
-                )
-                return
-            
-            # Insertar nueva orden (sin modificar el estado ocupado)
-            order_id = self.model.insert_order(
-                origen=self.current_pallet_position,
-                pallet_id=self.current_pallet_id
-            )
-            
-            # Refrescar la lista de órdenes
-            self.refresh_orders_list()
-            
-        except Exception as e:
-            from PyQt5.QtWidgets import QMessageBox
-            QMessageBox.critical(self.view, "Error al añadir orden", f"No se pudo añadir la orden: {str(e)}")
-    
-    def delete_order(self, order_id: int):
-        try:
-            # Eliminar la orden (sin modificar el estado ocupado del pallet)
-            self.model.delete_order(order_id)
-            self.view.remove_order_item(order_id)
-        except Exception as e:
-            from PyQt5.QtWidgets import QMessageBox
-            QMessageBox.critical(self.view, "Error al eliminar orden", f"No se pudo eliminar la orden: {str(e)}")
-    
-    def delete_order_by_pallet(self, pallet_id: str):
-        """Elimina la orden asociada a un pallet (si existe). Útil cuando se cambia el estado a libre."""
-        try:
-            orders = self.model.get_all_orders()
-            for order in orders:
-                if order.get("Pallet_ID") == pallet_id:
-                    self.model.delete_order(order["ID"])
-                    self.view.remove_order_item(order["ID"])
-                    break
-        except Exception as e:
-            print(f"Error al eliminar orden por pallet: {e}")
-    
-    def move_order_up(self, order_id: int):
-        try:
-            orders = self.model.get_all_orders()
-            current_index = -1
-            for i, order in enumerate(orders):
-                if order["ID"] == order_id:
-                    current_index = i
-                    break
-            if current_index > 0:
-                prev_order = orders[current_index - 1]
-                self.model.swap_destinations(order_id, prev_order["ID"])
-                self.refresh_orders_list()
-        except Exception as e:
-            from PyQt5.QtWidgets import QMessageBox
-            QMessageBox.critical(self.view, "Error al mover orden", f"No se pudo mover la orden: {str(e)}")
-    
-    def move_order_down(self, order_id: int):
-        try:
-            orders = self.model.get_all_orders()
-            current_index = -1
-            for i, order in enumerate(orders):
-                if order["ID"] == order_id:
-                    current_index = i
-                    break
-            if current_index < len(orders) - 1:
-                next_order = orders[current_index + 1]
-                self.model.swap_destinations(order_id, next_order["ID"])
-                self.refresh_orders_list()
-        except Exception as e:
-            from PyQt5.QtWidgets import QMessageBox
-            QMessageBox.critical(self.view, "Error al mover orden", f"No se pudo mover la orden: {str(e)}")
-    
-    def on_order_selected(self, order_id: int):
-        pass
-    
-    def load_orders(self):
-        """Cargar todas las órdenes en la vista."""
-        self.ordenes_cargadas = True
-        orders = self.model.get_all_orders()
-        for order in orders:
-            self.view.add_order_item(
-                order_id=order["ID"],
-                origen=order["Origen"],
-                destino=order["Destino"]
-            )
-    
-    def refresh_orders_list(self):
-        orders = self.model.get_all_orders()
-        self.view.clear_orders()
-        for order in orders:
-            self.view.add_order_item(
-                order_id=order["ID"],
-                origen=order["Origen"],
-                destino=order["Destino"]
-            )
-    
-    def clear_orders(self):
-        """Limpiar todas las órdenes de la vista (usado al cerrar mapa)."""
-        self.ordenes_cargadas = False
-        self.view.clear_orders()
+        # Cargar órdenes iniciales
+        self.load_orders()
     
     def get_widget(self):
         return self.view
+    
+    def set_current_pallet(self, pallet_id):
+        self.current_pallet = pallet_id
+    
+    def load_orders(self):
+        """Cargar todas las órdenes desde la base de datos y mostrarlas en la tabla."""
+        self.view.clear_orders()
+        orders = self.ordenes_model.get_all_orders()
+        for order in orders:
+            self.view.add_order_item(
+                order_id=order['ID'],
+                origen=order['Origen'],
+                destino=order['Destino']
+            )
+    
+    def add_order(self):
+        if not self.current_pallet:
+            QMessageBox.warning(self.view, "Sin pallet", "No hay ningún pallet seleccionado.")
+            return
+        
+        # Obtener datos actualizados del pallet
+        pallet_data = self.model.get_pallet_by_id(self.current_pallet)
+        if not pallet_data:
+            QMessageBox.warning(self.view, "Error", "El pallet seleccionado no existe.")
+            return
+        
+        # Verificar calidad
+        calidad = pallet_data.get("Calidad", 0)
+        if calidad == 0:
+            QMessageBox.warning(
+                self.view,
+                "Calidad inválida",
+                "La calidad del pallet es 0. No se puede agregar a la lista de órdenes. Por favor, cambie la calidad a un valor diferente de 0."
+            )
+            return
+        
+        origen = pallet_data.get("Posicion")  # Asumiendo que 'Posicion' es el origen
+        # Insertar orden en la base de datos
+        self.ordenes_model.insert_order(origen, self.current_pallet)
+        self.load_orders()  # Refrescar vista
+    
+    def delete_order(self, order_id: int):
+        """Eliminar una orden por ID."""
+        self.ordenes_model.delete_order(order_id)
+        self.load_orders()
+    
+    def delete_order_by_pallet(self, pallet_id: str):
+        """Eliminar todas las órdenes asociadas a un pallet específico."""
+        orders = self.ordenes_model.get_all_orders()
+        for order in orders:
+            if order.get('Pallet_ID') == pallet_id:
+                self.ordenes_model.delete_order(order['ID'])
+        self.load_orders()
+    
+    def move_up(self, order_id: int):
+        """Mover una orden hacia arriba (intercambiar destinos con la anterior)."""
+        orders = self.ordenes_model.get_all_orders()
+        ids = [o['ID'] for o in orders]
+        if order_id in ids:
+            idx = ids.index(order_id)
+            if idx > 0:
+                prev_id = ids[idx - 1]
+                self.ordenes_model.swap_destinations(order_id, prev_id)
+                self.load_orders()
+    
+    def move_down(self, order_id: int):
+        """Mover una orden hacia abajo (intercambiar destinos con la siguiente)."""
+        orders = self.ordenes_model.get_all_orders()
+        ids = [o['ID'] for o in orders]
+        if order_id in ids:
+            idx = ids.index(order_id)
+            if idx < len(ids) - 1:
+                next_id = ids[idx + 1]
+                self.ordenes_model.swap_destinations(order_id, next_id)
+                self.load_orders()

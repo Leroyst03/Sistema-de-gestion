@@ -331,6 +331,13 @@ class MainWindow(QMainWindow):
         self.add_to_orders_button.setEnabled(True)
         self.ui.propiedadesTable.itemChanged.connect(self.on_propiedades_changed)
     
+    def limpiar_propiedades_pallet(self):
+        """Limpia la tabla de propiedades y deshabilita el botón de añadir a órdenes."""
+        for row in range(self.ui.propiedadesTable.rowCount()):
+            self.ui.propiedadesTable.setItem(row, 1, QTableWidgetItem(""))
+        if self.add_to_orders_button:
+            self.add_to_orders_button.setEnabled(False)
+    
     def on_propiedades_changed(self, item: QTableWidgetItem):
         if item.column() == 1:
             row = item.row()
