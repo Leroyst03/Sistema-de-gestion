@@ -76,6 +76,9 @@ class MainWindow(QMainWindow):
         self.ui.groupIO.setVisible(True)
         self.setup_panel_sizes()
         
+        # El grupo de órdenes se muestra desde el inicio (vacío)
+        # No se oculta, se llenará al cargar el mapa
+        
         self.current_pallet_id = None
         self.add_to_orders_button = None
         
@@ -132,6 +135,8 @@ class MainWindow(QMainWindow):
         self.ui.ioLayout.addWidget(scroll)
     
     def mostrar_panel_ordenes(self):
+        # Este método ya no es necesario para mostrar/ocultar, pero se mantiene por si acaso
+        # Ahora simplemente aseguramos que sea visible
         self.ui.groupOrdenes.setVisible(True)
         if self.has_image:
             total_panel_height = self.ui.sidePanel.height()
@@ -198,16 +203,12 @@ class MainWindow(QMainWindow):
         ANCHO_SECUNDARIO = 20
         ALTO_SECUNDARIO = 40
         
-        # --- CAMBIO: Invertir colores según estado ocupado ---
         if ocupado:
-            # Ocupado: colores normales
             color_principal = QColor(0, 51, 102)    # Azul oscuro
             color_secundario = QColor(120, 60, 20)  # Marrón claro
         else:
-            # Libre: gris
-            color_principal = QColor(128, 128, 128)
+            color_principal = QColor(128, 128, 128) # Gris
             color_secundario = QColor(128, 128, 128)
-        # ----------------------------------------------------
         
         pen_negro = QPen(Qt.black, 1)
         
@@ -333,7 +334,6 @@ class MainWindow(QMainWindow):
     
     def limpiar_propiedades_pallet(self):
         """Limpia la tabla de propiedades y deshabilita el botón de añadir a órdenes, sin disparar señales."""
-        # Desconectar señal temporalmente para evitar validaciones al limpiar
         try:
             self.ui.propiedadesTable.itemChanged.disconnect()
         except:
@@ -344,8 +344,6 @@ class MainWindow(QMainWindow):
         
         if self.add_to_orders_button:
             self.add_to_orders_button.setEnabled(False)
-        
-        # No reconectar aquí; se reconectará cuando se muestren propiedades de otro pallet en mostrar_propiedades_pallet
     
     def on_propiedades_changed(self, item: QTableWidgetItem):
         if item.column() == 1:
@@ -388,6 +386,8 @@ class MainWindow(QMainWindow):
             self.add_to_orders_button.setEnabled(False)
         
         self.ui.groupOrdenes.setMinimumHeight(150)
+        # No ocultamos el grupo de órdenes, solo lo dejamos visible pero vacío
+        # (las órdenes se recargarán al cargar el mapa)
         
         if hasattr(self, 'io_controller'):
             self.io_controller.stop_monitoring()

@@ -16,6 +16,10 @@ class MainController(QObject):
         self.model = DataProvider()
         self.ordenes_controller = OrdenesController(self.model)
         
+        # Limpiar la vista de órdenes al inicio para que se vea vacía
+        # (aunque la BD pueda tener datos, no se muestran hasta cargar mapa)
+        self.ordenes_controller.view.clear_orders()
+        
         self.setup_ordenes_widget()
         self.conectar_señales()
         
@@ -70,7 +74,7 @@ class MainController(QObject):
                 self.view.io_controller.start_monitoring()
             self.view.mostrar_panel_ordenes()
             self.cargar_pallets()
-            self.ordenes_controller.load_orders()
+            self.ordenes_controller.load_orders()  # Carga las órdenes existentes
             # Iniciar el temporizador de actualización de pallets
             self.pallet_timer.start(500)
             QMessageBox.information(self.view, "Éxito", "Mapa cargado correctamente")
@@ -176,8 +180,6 @@ class MainController(QObject):
         for pallet_id, data in pallets_a_actualizar:
             if data is None:
                 # Eliminar pallet de la vista
-                # Como no tenemos un método directo para eliminar, podemos redibujar todos,
-                # pero para eficiencia, eliminamos los items y luego los volvemos a dibujar
                 if pallet_id in self.view.pallet_items:
                     for item in self.view.pallet_items[pallet_id]:
                         self.view.scene.removeItem(item)
