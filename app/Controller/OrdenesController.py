@@ -58,6 +58,16 @@ class OrdenesController(QObject):
             )
             return
         
+        # --- NUEVA VALIDACIÓN: Evitar duplicados ---
+        existing_order = self.ordenes_model.get_order_by_pallet(self.current_pallet)
+        if existing_order:
+            QMessageBox.warning(
+                self.view,
+                "Pallet duplicado",
+                "Este pallet ya ha sido agregado a la lista de órdenes."
+            )
+            return
+        
         origen = pallet_data.get("Posicion")  # Asumiendo que 'Posicion' es el origen
         # Insertar orden en la base de datos
         self.ordenes_model.insert_order(origen, self.current_pallet)

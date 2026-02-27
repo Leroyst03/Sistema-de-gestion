@@ -111,3 +111,12 @@ class OrdenesModel:
                     (destino, order_id)
                 )
             conn.commit()
+
+    def get_order_by_pallet(self, pallet_id: str) -> Optional[Dict[str, Any]]:
+        """Retorna la orden asociada a un pallet, si existe."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM ordenes WHERE Pallet_ID = ?", (pallet_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None

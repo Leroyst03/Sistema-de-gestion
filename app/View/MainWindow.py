@@ -332,11 +332,20 @@ class MainWindow(QMainWindow):
         self.ui.propiedadesTable.itemChanged.connect(self.on_propiedades_changed)
     
     def limpiar_propiedades_pallet(self):
-        """Limpia la tabla de propiedades y deshabilita el botón de añadir a órdenes."""
+        """Limpia la tabla de propiedades y deshabilita el botón de añadir a órdenes, sin disparar señales."""
+        # Desconectar señal temporalmente para evitar validaciones al limpiar
+        try:
+            self.ui.propiedadesTable.itemChanged.disconnect()
+        except:
+            pass
+        
         for row in range(self.ui.propiedadesTable.rowCount()):
             self.ui.propiedadesTable.setItem(row, 1, QTableWidgetItem(""))
+        
         if self.add_to_orders_button:
             self.add_to_orders_button.setEnabled(False)
+        
+        # No reconectar aquí; se reconectará cuando se muestren propiedades de otro pallet en mostrar_propiedades_pallet
     
     def on_propiedades_changed(self, item: QTableWidgetItem):
         if item.column() == 1:
