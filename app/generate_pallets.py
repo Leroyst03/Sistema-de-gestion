@@ -21,7 +21,7 @@ def generar_pallet():
         "Ancho": round(random.uniform(0.8, 1.2), 2),
         "Posicion": random.randint(1, 300),
         "Alto": round(random.uniform(0.5, 2.0), 2),
-        "Calidad": 0,
+        "Calidad": 0,                                  # Calidad inicial en 0
         "Peso": round(random.uniform(50, 1200), 1),
         "Prioridad": random.randint(1, 5),
         "X": round(random.uniform(0, MAP_WIDTH_M), 2),
