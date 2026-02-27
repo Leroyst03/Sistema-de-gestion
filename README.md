@@ -111,7 +111,7 @@ El sistema utiliza tres bases de datos SQLite que se crean automáticamente en l
 
 | Campo | Tipo | Descripción |
 |---|---|---|
-| ID | INTEGER (PK) | Autoincremental |
+| ID | TEXT (PK) | Clave hexadecimal |
 | Origen | INTEGER | Posición de origen del pallet |
 | Destino | INTEGER | Destino asignado (cíclico 1–11) |
 | Pallet_ID | TEXT (FK) | Referencia al pallet asociado |
