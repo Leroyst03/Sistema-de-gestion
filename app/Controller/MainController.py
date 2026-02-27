@@ -16,10 +16,6 @@ class MainController(QObject):
         self.model = DataProvider()
         self.ordenes_controller = OrdenesController(self.model)
         
-        # Conectar señales del controlador de órdenes para actualizar vista
-        self.ordenes_controller.order_added.connect(self.on_pallet_ocupado_changed)
-        self.ordenes_controller.order_deleted.connect(self.on_pallet_ocupado_changed)
-        
         self.setup_ordenes_widget()
         self.conectar_señales()
         
@@ -95,31 +91,31 @@ class MainController(QObject):
                 QMessageBox.warning(self.view, "Error", "Las coordenadas X e Y no se pueden editar directamente")
                 return
             
+            # Guardar el valor anterior de ocupado (si existe) para comparar
+            pallet_anterior = self.model.get_pallet_by_id(self.current_pallet_id)
+            ocupado_anterior = pallet_anterior.get("Ocupado") if pallet_anterior else None
+            
+            # Actualizar en base de datos
             self.model.update_pallet(self.current_pallet_id, **propiedades)
+            
+            # Obtener el nuevo estado
             pallet_data = self.model.get_pallet_by_id(self.current_pallet_id)
             
+            # Si se actualizó el campo Ocupado, redibujar
             if "Ocupado" in propiedades and pallet_data:
                 self.view.actualizar_pallet_visual(self.current_pallet_id, pallet_data)
+                # Actualizar cache
                 for i, pallet in enumerate(self.pallets_data):
                     if pallet["ID"] == self.current_pallet_id:
                         self.pallets_data[i].update(propiedades)
                         break
+                
+                # Si se cambió de ocupado=1 a ocupado=0, eliminar de la lista de órdenes si estaba
+                nuevo_ocupado = propiedades["Ocupado"]
+                if ocupado_anterior == 1 and nuevo_ocupado == 0:
+                    self.ordenes_controller.delete_order_by_pallet(self.current_pallet_id)
             
             QMessageBox.information(self.view, "Éxito", "Propiedades actualizadas correctamente")
-    
-    def on_pallet_ocupado_changed(self, pallet_id: str):
-        """Actualizar la vista de un pallet cuando cambia su estado de ocupado por órdenes"""
-        pallet_data = self.model.get_pallet_by_id(pallet_id)
-        if pallet_data:
-            self.view.actualizar_pallet_visual(pallet_id, pallet_data)
-            # Actualizar también el cache local
-            for i, pallet in enumerate(self.pallets_data):
-                if pallet["ID"] == pallet_id:
-                    self.pallets_data[i] = pallet_data
-                    break
-            # Si el pallet es el actualmente seleccionado, actualizar la tabla de propiedades
-            if self.current_pallet_id == pallet_id:
-                self.view.mostrar_propiedades_pallet(pallet_data)
     
     def on_salir(self):
         reply = QMessageBox.question(self.view, 'Salir', '¿Está seguro de salir de la aplicación?',

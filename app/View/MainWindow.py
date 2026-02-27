@@ -200,13 +200,13 @@ class MainWindow(QMainWindow):
         
         # --- CAMBIO: Invertir colores según estado ocupado ---
         if ocupado:
-            # Ocupado: gris
-            color_principal = QColor(128, 128, 128)
-            color_secundario = QColor(128, 128, 128)
-        else:
-            # Libre: colores normales
+            # Ocupado: colores normales
             color_principal = QColor(0, 51, 102)    # Azul oscuro
             color_secundario = QColor(120, 60, 20)  # Marrón claro
+        else:
+            # Libre: gris
+            color_principal = QColor(128, 128, 128)
+            color_secundario = QColor(128, 128, 128)
         # ----------------------------------------------------
         
         pen_negro = QPen(Qt.black, 1)

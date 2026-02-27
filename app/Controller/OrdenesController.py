@@ -1,13 +1,9 @@
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject
 from Model.OrdenesModel import OrdenesModel
 from Model.DataProvider import DataProvider
 from View.OrdenesWidget import OrdenesWidget
 
 class OrdenesController(QObject):
-    # Señales para notificar cambios en órdenes
-    order_added = pyqtSignal(str)   # pallet_id
-    order_deleted = pyqtSignal(str) # pallet_id
-
     def __init__(self, data_provider: DataProvider = None):
         super().__init__()
         self.model = OrdenesModel()
@@ -48,7 +44,6 @@ class OrdenesController(QObject):
             orders = self.model.get_all_orders()
             existing_order = next((order for order in orders 
                                  if order.get("Pallet_ID") == self.current_pallet_id), None)
-            
             if existing_order:
                 from PyQt5.QtWidgets import QMessageBox
                 QMessageBox.warning(
@@ -58,30 +53,25 @@ class OrdenesController(QObject):
                 )
                 return
             
-            # Verificar si el pallet ya está ocupado (por ejemplo, manualmente)
+            # Verificar que el pallet esté ocupado (ocupado = 1)
             pallet_data = self.data_provider.get_pallet_by_id(self.current_pallet_id)
-            if pallet_data and pallet_data.get("Ocupado") == 1:
+            if not pallet_data or pallet_data.get("Ocupado") != 1:
                 from PyQt5.QtWidgets import QMessageBox
                 QMessageBox.warning(
                     self.view,
-                    "Pallet ocupado",
-                    "Este pallet ya se encuentra ocupado. No se puede añadir a la lista."
+                    "Pallet no ocupado",
+                    "Solo se pueden añadir a la lista los pallets que estén ocupados.\n"
+                    "Marque el pallet como ocupado en la tabla de propiedades primero."
                 )
                 return
             
-            # Insertar nueva orden
+            # Insertar nueva orden (sin modificar el estado ocupado)
             order_id = self.model.insert_order(
                 origen=self.current_pallet_position,
                 pallet_id=self.current_pallet_id
             )
             
-            # Marcar el pallet como ocupado
-            self.data_provider.update_pallet(self.current_pallet_id, Ocupado=1)
-            
-            # Notificar que se añadió la orden
-            self.order_added.emit(self.current_pallet_id)
-            
-            # Refrescar la lista de órdenes en la vista
+            # Refrescar la lista de órdenes
             self.refresh_orders_list()
             
         except Exception as e:
@@ -90,22 +80,24 @@ class OrdenesController(QObject):
     
     def delete_order(self, order_id: int):
         try:
-            # Obtener el pallet_id antes de eliminar la orden
-            orders = self.model.get_all_orders()
-            order = next((o for o in orders if o["ID"] == order_id), None)
-            if order:
-                pallet_id = order.get("Pallet_ID")
-                # Eliminar la orden
-                self.model.delete_order(order_id)
-                # Si la orden tenía un pallet asociado, marcarlo como no ocupado
-                if pallet_id:
-                    self.data_provider.update_pallet(pallet_id, Ocupado=0)
-                    self.order_deleted.emit(pallet_id)
-                # Actualizar vista
-                self.view.remove_order_item(order_id)
+            # Eliminar la orden (sin modificar el estado ocupado del pallet)
+            self.model.delete_order(order_id)
+            self.view.remove_order_item(order_id)
         except Exception as e:
             from PyQt5.QtWidgets import QMessageBox
             QMessageBox.critical(self.view, "Error al eliminar orden", f"No se pudo eliminar la orden: {str(e)}")
+    
+    def delete_order_by_pallet(self, pallet_id: str):
+        """Elimina la orden asociada a un pallet (si existe). Útil cuando se cambia el estado a libre."""
+        try:
+            orders = self.model.get_all_orders()
+            for order in orders:
+                if order.get("Pallet_ID") == pallet_id:
+                    self.model.delete_order(order["ID"])
+                    self.view.remove_order_item(order["ID"])
+                    break
+        except Exception as e:
+            print(f"Error al eliminar orden por pallet: {e}")
     
     def move_order_up(self, order_id: int):
         try:
@@ -143,7 +135,7 @@ class OrdenesController(QObject):
         pass
     
     def load_orders(self):
-        """Cargar todas las órdenes en la vista y sincronizar estado ocupado"""
+        """Cargar todas las órdenes en la vista."""
         self.ordenes_cargadas = True
         orders = self.model.get_all_orders()
         for order in orders:
@@ -152,11 +144,6 @@ class OrdenesController(QObject):
                 origen=order["Origen"],
                 destino=order["Destino"]
             )
-            # Asegurar que el pallet asociado esté marcado como ocupado
-            pallet_id = order.get("Pallet_ID")
-            if pallet_id:
-                self.data_provider.update_pallet(pallet_id, Ocupado=1)
-                self.order_added.emit(pallet_id)
     
     def refresh_orders_list(self):
         orders = self.model.get_all_orders()
@@ -169,7 +156,7 @@ class OrdenesController(QObject):
             )
     
     def clear_orders(self):
-        """Limpiar todas las órdenes de la vista (usado al cerrar mapa)"""
+        """Limpiar todas las órdenes de la vista (usado al cerrar mapa)."""
         self.ordenes_cargadas = False
         self.view.clear_orders()
     
