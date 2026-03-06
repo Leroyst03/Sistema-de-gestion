@@ -123,7 +123,7 @@ El sistema utiliza tres bases de datos SQLite que se crean automáticamente en l
 **Gestión visual del mapa**
 - Carga de una imagen de planta (`.png`, `.jpg`, `.bmp`) como fondo
 - Representación gráfica de los pallets sobre el mapa con zoom y desplazamiento
-- Pallets libres en azul oscuro/marrón y ocupados en gris
+- Pallets libres en gris y ocupados en azul oscuro/marrón
 - Selección de pallets con clic
 
 **Propiedades de pallets**
