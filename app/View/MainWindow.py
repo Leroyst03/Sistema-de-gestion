@@ -52,6 +52,10 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         
+        # --- AÑADIDO: Ocultar la opción "Abrir" del menú ---
+        self.ui.actionAbrir.setVisible(False)
+        # ---------------------------------------------------
+        
         self.escala = 0.05
         
         self.graphics_view = GraphicsView(self.ui.scrollAreaWidgetContentsWork)

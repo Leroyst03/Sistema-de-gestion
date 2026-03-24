@@ -1,10 +1,12 @@
 import sys
+import os
 from PyQt5.QtWidgets import QApplication, QMessageBox, QSizePolicy
 from PyQt5.QtCore import QObject, QTimer
 
 from Model.DataProvider import DataProvider
 from View.MainWindow import MainWindow
 from Controller.OrdenesController import OrdenesController
+from utils import resource_path
 
 class MainController(QObject):
     def __init__(self):
@@ -32,16 +34,22 @@ class MainController(QObject):
         self.pallet_timer.timeout.connect(self.update_pallets_display)
         
         self.view.show()
+        
+        # --- AÑADIDO: Cargar mapa automáticamente al inicio ---
+        QTimer.singleShot(0, self.cargar_mapa_por_defecto)
+        # ------------------------------------------------------
+        
         sys.exit(self.app.exec_())
     
     def cargar_estilos(self):
         try:
-            with open("Static/Styles/estilos.qss", "r") as f:
+            estilo_path = resource_path("Static/Styles/estilos.qss")
+            with open(estilo_path, "r") as f:
                 estilo = f.read()
                 self.app.setStyleSheet(estilo)
         except FileNotFoundError:
             print("Archivo de estilos no encontrado, usando estilos por defecto")
-    
+            
     def setup_ordenes_widget(self):
         while self.view.ui.ordenesLayout.count():
             item = self.view.ui.ordenesLayout.takeAt(0)
@@ -198,3 +206,16 @@ class MainController(QObject):
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             self.app.quit()
+    
+    def cargar_mapa_por_defecto(self):
+        """Carga el mapa predeterminado (mapa.png) si existe."""
+        ruta_mapa = resource_path("mapa.png")
+        if os.path.exists(ruta_mapa):
+            self.on_imagen_cargada(ruta_mapa)
+        else:
+            QMessageBox.warning(
+                self.view,
+                "Mapa no encontrado",
+                f"No se encontró el archivo '{ruta_mapa}'. "
+                "La aplicación no podrá cargar el mapa automáticamente."
+            )

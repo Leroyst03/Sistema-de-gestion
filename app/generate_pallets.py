@@ -10,8 +10,8 @@ MAP_HEIGHT_PX = 599
 ESCALA = 0.05
 
 # Tamaño del mapa en metros
-MAP_WIDTH_M = MAP_WIDTH_PX * ESCALA    # 48.95 m
-MAP_HEIGHT_M = MAP_HEIGHT_PX * ESCALA  # 29.95 m
+MAP_WIDTH_M = MAP_WIDTH_PX * ESCALA  
+MAP_HEIGHT_M = MAP_HEIGHT_PX * ESCALA  
 
 def generar_pallet():
     """Genera un pallet con datos válidos para la DB. Incluye un ID hexadecimal único."""
@@ -26,7 +26,7 @@ def generar_pallet():
         "Prioridad": random.randint(1, 5),
         "X": round(random.uniform(0, MAP_WIDTH_M), 2),
         "Y": round(random.uniform(0, MAP_HEIGHT_M), 2),
-        "Ocupado": random.choice([0, 1])                 # ← Cambiado a Ocupado
+        "Ocupado": random.choice([0, 1])                
     }
 
 def poblar_db(cantidad=50):
@@ -41,4 +41,4 @@ def poblar_db(cantidad=50):
     print("\n✔ Inserción completada.")
 
 if __name__ == "__main__":
-    poblar_db(5)   # Cambia la cantidad de pallets a generar según tus necesidades
+    poblar_db(12)   # Cambia la cantidad de pallets a generar según tus necesidades
